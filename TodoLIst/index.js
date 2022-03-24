@@ -2,37 +2,71 @@
 const domSeletors = {
     'todolistHeader': '.todolist__header',
     'todolistContent': '.todolist__content',
+    'inputBarSubmit': '.input-bar__submit',
+    'inputBarInput': '.input-bar__input'
 }
 
 
 // Data
 const title = "My To Do List";
 const submitText = "Add";
-let todos = [{
-    "userId": 1,
-    "id": 1,
-    "title": "Hit the gym",
-    "completed": false
-}, {
-    "userId": 1,
-    "id": 2,
-    "title": "sdfasf aut autem",
-    "completed": false
-}, {
-    "userId": 1,
-    "id": 3,
-    "title": "sdfsafsadf aut autem",
-    "completed": true
-}, {
-    "userId": 1,
-    "id": 4,
-    "title": "dfdsfsafasfs aut autem",
-    "completed": false
-}]
+let todos = []
+// let todos = [{
+//     "userId": 1,
+//     "id": 1,
+//     "title": "Hit the gym",
+//     "completed": false
+// }, {
+//     "userId": 1,
+//     "id": 2,
+//     "title": "sdfasf aut autem",
+//     "completed": true
+// }, {
+//     "userId": 1,
+//     "id": 3,
+//     "title": "sdfsafsadf aut autem",
+//     "completed": true
+// }, {
+//     "userId": 1,
+//     "id": 4,
+//     "title": "dfdsfsafasfs aut autem",
+//     "completed": false
+// }]
 
+
+// let obj = {
+//     name: 'patrick'
+// };
+// // mutable
+// obj.name = 'sam';
+
+// // imutable
+// obj = {
+//     name: 'sam'
+// }
+
+
+function addNewTodo(newTodo) {
+    todos = [...todos, {
+        ...newTodo,
+        id: Math.floor(Math.random() * 1000000)
+    }]
+}
 
 function deletTodo(id) {
     todos = todos.filter(todo => todo.id !== id);
+}
+
+function toggleCompleteTodo(id) {
+    todos = todos.map(todo => {
+        if (todo.id === id) {
+            return {
+                ...todo,
+                completed: !todo.completed
+            }
+        }
+        return todo;
+    });
 }
 
 function generateHeaderContent(title, submitText) {
@@ -45,7 +79,7 @@ function generateHeaderContent(title, submitText) {
 
 
 function generateTodoItem(todo) {
-    return `<li id="todo-${todo.id}" class="todolist__content__row">
+    return `<li id="todo-${todo.id}" class="todolist__content__row ${todo.completed ? 'checked' : ''}">
     <span class="todolist__content__item">${todo.title}</span>
     <button  class="todolist__content__action" >X</button>
 </li>`
@@ -73,27 +107,73 @@ function render(element, template) {
 }
 
 function setUpEvent() {
+    document.querySelector(domSeletors.inputBarSubmit).addEventListener('click', (e) => {
+        const inputEle = document.querySelector(domSeletors.inputBarInput);
+        const newTitle = inputEle.value;
+        inputEle.value = ''
+        const newTodo = {
+            title: newTitle,
+            completed: false,
+            userId: 1
+        }
+        addNewTodo(newTodo);
+        renderTodoList(todos);
+    })
+
     document.querySelector(domSeletors.todolistContent).addEventListener('click', (e) => {
         if (isDeleteButton(e.target)) {
-            const id = getTodoIdFromBtn(e.target);
+            const id = getTodoIdFromParent(e.target);
             deletTodo(id);
+            renderTodoList(todos);
+        } else if (isContentRowOrItem(e.target)) {
+            let id = getTodoIdFromElement(e.target) ? getTodoIdFromElement(e.target) : getTodoIdFromParent(e.target)
+            toggleCompleteTodo(id)
             renderTodoList(todos);
         }
     })
 }
 
-function getTodoIdFromBtn(btnElement) {
-    return +(btnElement.parentElement.id.substring(5))
+
+function getTodoIdFromElement(element) {
+    if (element?.id?.startsWith('todo')) {
+        return +(element.id.substring(5))
+    }
+    console.warn('element Does not has an id')
+    return null;
+}
+
+function getTodoIdFromParent(childElement) {
+    return getTodoIdFromElement(childElement.parentElement);
 }
 
 function isDeleteButton(element) {
     return element.classList.contains('todolist__content__action')
 }
 
+function isContentRowOrItem(element) {
+    return element.classList.contains('todolist__content__row')
+        || element.classList.contains('todolist__content__item')
+}
+
+
+/// APIS
+
+function getTodos() {
+    fetch('https://jsonplaceholder.typicode.com/todos')
+        .then((response) => response.json())
+        .then((json) => {
+            todos = json;
+            console.log('todos', todos)
+        });
+}
+
 
 // init
 renderHeader(title, submitText);
+getTodos();
+console.log(todos)
 renderTodoList(todos);
 
 // init Event
 setUpEvent()
+
