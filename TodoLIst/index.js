@@ -49,11 +49,11 @@ let todos = []
 function addNewTodo(newTodo) {
     todos = [...todos, {
         ...newTodo,
-        id: Math.floor(Math.random() * 1000000)
     }]
 }
 
 function deletTodo(id) {
+    console.log(todos, id)
     todos = todos.filter(todo => todo.id !== id);
 }
 
@@ -116,15 +116,21 @@ function setUpEvent() {
             completed: false,
             userId: 1
         }
-        addNewTodo(newTodo);
-        renderTodoList(todos);
+
+        addTodo(newTodo).then(data => {
+            addNewTodo(data);
+            renderTodoList(todos);
+        })
     })
 
     document.querySelector(domSeletors.todolistContent).addEventListener('click', (e) => {
         if (isDeleteButton(e.target)) {
             const id = getTodoIdFromParent(e.target);
-            deletTodo(id);
-            renderTodoList(todos);
+            deleteTodo(id).then(_ => {
+                console.log("delete")
+                deletTodo(id);
+                renderTodoList(todos);
+            })
         } else if (isContentRowOrItem(e.target)) {
             let id = getTodoIdFromElement(e.target) ? getTodoIdFromElement(e.target) : getTodoIdFromParent(e.target)
             toggleCompleteTodo(id)
@@ -159,20 +165,34 @@ function isContentRowOrItem(element) {
 /// APIS
 
 function getTodos() {
-    fetch('https://jsonplaceholder.typicode.com/todos')
+    return fetch('https://jsonplaceholder.typicode.com/todos')
         .then((response) => response.json())
-        .then((json) => {
-            todos = json;
-            console.log('todos', todos)
-        });
+}
+
+function deleteTodo(id) {
+    return fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+        method: 'DELETE',
+    });
+}
+
+function addTodo(newTodo) {
+    return fetch('https://jsonplaceholder.typicode.com/todos', {
+        method: 'POST',
+        body: JSON.stringify(newTodo),
+        headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+        },
+    })
+        .then((response) => response.json())
 }
 
 
 // init
 renderHeader(title, submitText);
-getTodos();
-console.log(todos)
-renderTodoList(todos);
+getTodos().then(todosData => {
+    todos = todosData;
+    renderTodoList(todos);
+})
 
 // init Event
 setUpEvent()
